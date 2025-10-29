@@ -11,6 +11,7 @@ import {
   cuisinesKey,
   restaurantCuisinesKeyById,
   restaurantKeyById,
+  restaurantsByRatingKey,
   reviewDetailsKeyById,
   reviewKeyById,
 } from "../utils/redis/keys.js";
@@ -20,8 +21,27 @@ import { ReviewSchema, type Review } from "../schemas/review.schema.js";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
-  res.send("Hello World");
+router.get("/", async (req, res, next) => {
+  const { page = 1, limit = 10 } = req.query;
+  const start = (Number(page) - 1) * Number(limit);
+  const end = start + Number(limit);
+  try {
+    const client = await initializeRedisClient();
+    const restaurantIds = await client.zRange(
+      restaurantsByRatingKey,
+      start,
+      end,
+      { REV: true } // Reverse Rating (default from lowest to highest)
+    );
+    const restaurants = await Promise.all(
+      restaurantIds.map((restaurantId) =>
+        client.hGetAll(restaurantKeyById(restaurantId))
+      )
+    );
+    return successResponse(res, restaurants);
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/", validate(RestaurantSchema), async (req, res, next) => {
@@ -40,6 +60,7 @@ router.post("/", validate(RestaurantSchema), async (req, res, next) => {
         ])
       ),
       client.hSet(restaurantKey, hashData),
+      client.zAdd(restaurantsByRatingKey, { score: 0, value: id }),
     ]);
     return successResponse(res, hashData, "Added new restaurant");
   } catch (error) {
@@ -89,10 +110,21 @@ router.post(
         timestamp: Date.now(),
         restaurantId,
       };
-      await Promise.all([
+      const restaurantKey = restaurantKeyById(restaurantId);
+      const [reviewCount, setResult, totalStars] = await Promise.all([
         client.lPush(reviewKey, reviewId),
         client.hSet(reviewDetailsKey, reviewData),
+        client.hIncrByFloat(restaurantKey, "totalStars", data.rating),
       ]);
+      const averageRating = Number((+totalStars / reviewCount).toFixed(1));
+      await Promise.all([
+        client.zAdd(restaurantsByRatingKey, {
+          score: averageRating,
+          value: restaurantId,
+        }),
+        client.hSet(restaurantKey, "avgStars", averageRating),
+      ]);
+
       return successResponse(res, reviewData, "Review added");
     } catch (error) {
       next(error);
