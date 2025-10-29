@@ -2,7 +2,8 @@ import express from "express";
 import cuisineRouter from "./routes/cuisine.routes.js";
 import restaurantRouter from "./routes/restaurant.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
-
+import dotenv from "dotenv";
+dotenv.config();
 const PORT = process.env.PORT || 3000;
 
 const app = express();

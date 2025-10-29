@@ -4,7 +4,7 @@ let client: RedisClientType | null = null;
 
 export async function initializeRedisClient() {
   if (!client) {
-    client = createClient();
+    client = createClient({password: process.env.REDIS_PASSWORD});
     client.on("error", (error) => {
       console.error(error);
     });
