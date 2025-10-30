@@ -9,6 +9,7 @@ import {
 import { initializeRedisClient } from "../utils/redis/client.js";
 import { nanoid } from "nanoid";
 import {
+  bloomKey,
   cuisineKey,
   cuisinesKey,
   indexKey,
@@ -55,6 +56,11 @@ router.post("/", validate(RestaurantSchema), async (req, res, next) => {
     const client = await initializeRedisClient();
     const id = nanoid();
     const restaurantKey = restaurantKeyById(id);
+    const bloomString = `${data.name}:${data.location}`;
+    const seenBefore = await client.bf.exists(bloomKey, bloomString);
+    if (seenBefore) {
+      return errorResponse(res, 409, "Restaurant already exists");
+    }
     const hashData = { id, name: data.name, location: data.location };
     await Promise.all([
       ...data.cuisines.map((cuisineName: string) =>
@@ -66,6 +72,7 @@ router.post("/", validate(RestaurantSchema), async (req, res, next) => {
       ),
       client.hSet(restaurantKey, hashData),
       client.zAdd(restaurantsByRatingKey, { score: 0, value: id }),
+      client.bf.add(bloomKey, bloomString),
     ]);
     return successResponse(res, hashData, "Added new restaurant");
   } catch (error) {
@@ -73,16 +80,16 @@ router.post("/", validate(RestaurantSchema), async (req, res, next) => {
   }
 });
 
-router.get("/search", async (req,res,next) => {
-  const {q} = req.query;
-  try{
-    const client =await initializeRedisClient();
+router.get("/search", async (req, res, next) => {
+  const { q } = req.query;
+  try {
+    const client = await initializeRedisClient();
     const results = await client.ft.search(indexKey, `@name:*${q}*`);
     return successResponse(res, results);
-  }catch(error){
+  } catch (error) {
     next(error);
   }
-})
+});
 
 router.get(
   "/:restaurantId",
