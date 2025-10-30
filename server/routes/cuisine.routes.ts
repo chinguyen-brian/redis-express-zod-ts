@@ -9,10 +9,6 @@ import { successResponse } from "../utils/responses.js";
 
 const router = express.Router();
 
-router.post("", async (req, res) => {
-  return res.send("");
-});
-
 router.get("/", async (req, res, next) => {
   try {
     const client = await initializeRedisClient();

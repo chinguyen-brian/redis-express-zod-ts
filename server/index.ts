@@ -4,6 +4,9 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 import dotenv from "dotenv";
 import { RedisPublisher } from "./utils/redis/publisher.js";
 import { restaurantRouter } from "./routes/restaurant.routes.js";
+import swaggerUi from "swagger-ui-express";
+import YAML from "yamljs";
+
 dotenv.config();
 const PORT = process.env.PORT || 3000;
 
@@ -13,6 +16,9 @@ app.use(express.json());
 const publisher = new RedisPublisher();
 app.use("/cuisines", cuisineRouter);
 app.use("/restaurants", restaurantRouter(publisher));
+
+const swaggerDocument = YAML.load("./swagger/swagger.yml");
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 
 

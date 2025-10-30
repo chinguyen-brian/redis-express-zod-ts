@@ -1,0 +1,332 @@
+openapi: 3.0.0
+info:
+  title: Restaurant & Cuisine API
+  version: 1.0.0
+  description: API documentation for Restaurant and Cuisine management system.
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+paths:
+  /restaurants:
+    post:
+      summary: Create a new restaurant
+      description: Add a new restaurant to the system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, location, cuisine]
+              properties:
+                name:
+                  type: string
+                  example: Pizza Palace
+                location:
+                  type: string
+                  example: "106.6,10.7"
+                cuisines:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Vietnamese", "Italian"]
+      responses:
+        "201":
+          description: Restaurant created successfully
+        "400":
+          description: Invalid input
+    get:
+      summary: Get restaurants with descending ratings
+      description: Retrieve a list of restaurants ordered by their rating in descending order.
+      responses:
+        "200":
+          description: A list of restaurants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Restaurant"
+
+  /restaurants/search:
+    get:
+      summary: Search restaurants by name
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: true
+          description: The search term for the restaurant name
+      responses:
+        "200":
+          description: A list of matching restaurants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Restaurant"
+
+  /restaurants/{id}:
+    get:
+      summary: Get restaurant by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Restaurant details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Restaurant"
+        "404":
+          description: Restaurant not found
+
+  /restaurants/{id}/weather:
+    get:
+      summary: Get real-time weather of target restaurant location
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current weather data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  temperature:
+                    type: number
+                    example: 29.5
+                  condition:
+                    type: string
+                    example: Sunny
+
+  /restaurants/{id}/details:
+    post:
+      summary: Add details of a restaurant
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                links:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: Facebook
+                      url:
+                        type: string
+                        example: https://facebook.com/pizzapalace
+                contact:
+                  type: object
+                  properties:
+                    phone:
+                      type: string
+                      example: "+84 987654321"
+                    email:
+                      type: string
+                      example: contact@pizzapalace.com
+      responses:
+        "200":
+          description: Details added successfully
+    get:
+      summary: Get restaurant details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Restaurant details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        url:
+                          type: string
+                  contact:
+                    type: object
+                    properties:
+                      phone:
+                        type: string
+                      email:
+                        type: string
+
+  /restaurants/{id}/reviews:
+    post:
+      summary: Post a new review for a restaurant
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [review, rating]
+              properties:
+                review:
+                  type: string
+                  example: Great food and service!
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+      responses:
+        "201":
+          description: Review created successfully
+    get:
+      summary: Get all reviews of a restaurant
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A list of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+
+  /restaurants/{id}/reviews/{reviewId}:
+    delete:
+      summary: Delete a review by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Review deleted successfully
+        "404":
+          description: Review not found
+
+  /cuisines:
+    get:
+      summary: Get all cuisines
+      responses:
+        "200":
+          description: List of cuisines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Cuisine"
+
+  /cuisines/{cuisine}:
+    get:
+      summary: Get all restaurants with a specific cuisine
+      parameters:
+        - in: path
+          name: cuisine
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: A list of restaurants for the selected cuisine
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Restaurant"
+
+components:
+  schemas:
+    Restaurant:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 12345
+        name:
+          type: string
+          example: Pizza Palace
+        location:
+          type: string
+          example: "10.762622,106.660172"
+        cuisine:
+          type: array
+          items:
+            type: string
+          example: ["Italian", "Vietnamese"]
+        rating:
+          type: number
+          example: 4.5
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 9876
+        review:
+          type: string
+          example: Excellent taste and atmosphere!
+        rating:
+          type: integer
+          example: 5
+        createdAt:
+          type: string
+          format: date-time
+
+    Cuisine:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Italian
+        description:
+          type: string
+          example: Cuisine characterized by pasta, pizza, and olive oil.
